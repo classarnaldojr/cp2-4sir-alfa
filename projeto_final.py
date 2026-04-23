@@ -6,9 +6,6 @@ import os
 import urllib.request
 import mediapipe as mp
 
-# ====================================================================
-# 1. VERIFICAÇÃO E DOWNLOAD DO MODELO
-# ====================================================================
 model_path = 'face_landmarker.task'
 if not os.path.exists(model_path):
     print("A transferir o ficheiro de modelo face_landmarker.task...")
@@ -16,9 +13,7 @@ if not os.path.exists(model_path):
     urllib.request.urlretrieve(url, model_path)
     print("Transferência concluída!")
 
-# ====================================================================
-# 2. FUNÇÕES MATEMÁTICAS E LÓGICA DE NEGÓCIO (Limiares Mantidos)
-# ====================================================================
+
 def dist(p1, p2):
     return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
@@ -45,27 +40,23 @@ def get_emotion(face_landmarks, w, h):
     altura_sobrancelha = dist(sob_esq_topo, nariz) / tamanho_rosto
 
     emocao = "Neutro"
-    cor_alerta = (150, 150, 150) # Cinza para Neutro
+    cor_alerta = (150, 150, 150)
     
-    # REGRAS EXATAS DEFINIDAS NA SUA CALIBRAÇÃO
     if abertura_boca > 0.30 and altura_sobrancelha > 0.50:
         emocao = "Surpresa/Choque"
-        cor_alerta = (0, 255, 255) # Amarelo
+        cor_alerta = (0, 255, 255)
         
     elif largura_boca < 0.65 and abertura_boca < 0.05 and distancia_sobrancelhas < 0.30:
         emocao = "Tensao/Foco"
-        cor_alerta = (0, 0, 255) # Vermelho
+        cor_alerta = (0, 0, 255) 
         
     elif largura_boca > 0.65 and abertura_boca < 0.32:
         emocao = "Alegria/Diversao"
-        cor_alerta = (0, 255, 0) # Verde
+        cor_alerta = (0, 255, 0) 
         
     pontos_desenho = [boca_esq, boca_dir, boca_topo, boca_base, sob_esq_int, sob_dir_int]
     return emocao, cor_alerta, largura_boca, abertura_boca, distancia_sobrancelhas, pontos_desenho
 
-# ====================================================================
-# 3. INICIALIZAÇÃO DO MEDIAPIPE
-# ====================================================================
 BaseOptions = mp.tasks.BaseOptions
 FaceLandmarker = mp.tasks.vision.FaceLandmarker
 FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
@@ -81,9 +72,7 @@ options = FaceLandmarkerOptions(
 )
 landmarker = FaceLandmarker.create_from_options(options)
 
-# ====================================================================
-# 4. LOOP PRINCIPAL COM DASHBOARD LATERAL DE PORCENTAGENS
-# ====================================================================
+
 cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
@@ -92,7 +81,7 @@ if not cap.isOpened():
 
 start_time = time.time()
 
-# Contadores de Histórico da Sessão
+
 frames_processados = 0
 frames_alegria = 0
 frames_tensao = 0
@@ -110,7 +99,6 @@ while True:
     h, w, _ = frame.shape
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     
-    # Fundo do Dashboard Lateral 
     largura_dash = 400
     dashboard = np.zeros((h, largura_dash, 3), dtype=np.uint8)
     dashboard[:] = (25, 25, 25) 
@@ -130,7 +118,6 @@ while True:
         
         emocao_atual, cor, lag_boca, abert_boca, dist_sob, pts_desenho = get_emotion(face_landmarks, w, h)
         
-        # ALIMENTANDO O HISTÓRICO PARA AS PORCENTAGENS
         if emocao_atual == "Alegria/Diversao":
             frames_alegria += 1
         elif emocao_atual == "Tensao/Foco":
@@ -143,18 +130,13 @@ while True:
         for pt in pts_desenho:
             cv2.circle(frame, pt, 3, cor, -1)
             
-        # =================================================================
-        # CÁLCULO DAS PORCENTAGENS EM TEMPO REAL
-        # =================================================================
+    
         pct_alegria = (frames_alegria / frames_processados) * 100
         pct_tensao = (frames_tensao / frames_processados) * 100
         pct_surpresa = (frames_surpresa / frames_processados) * 100
         pct_neutro = (frames_neutro / frames_processados) * 100
             
-        # =================================================================
-        # DESENHO DO DASHBOARD
-        # =================================================================
-        # Título e Estado Atual
+
         cv2.putText(dashboard, "DASHBOARD UX", (20, 40), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 255), 2)
         cv2.line(dashboard, (20, 55), (largura_dash - 20, 55), (100, 100, 100), 1)
         
@@ -163,29 +145,22 @@ while True:
         
         cv2.line(dashboard, (20, 160), (largura_dash - 20, 160), (50, 50, 50), 1)
         
-        # Gráficos de Porcentagem Dinâmicos
         cv2.putText(dashboard, "PREVALENCIA NA SESSAO (%):", (20, 190), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
         
-        # 1. Alegria
         cv2.putText(dashboard, f"Alegria: {pct_alegria:.1f}%", (20, 220), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.rectangle(dashboard, (20, 230), (20 + int((pct_alegria/100)*340), 245), (0, 255, 0), -1) 
-        
-        # 2. Tensão
+
         cv2.putText(dashboard, f"Tensao: {pct_tensao:.1f}%", (20, 275), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.rectangle(dashboard, (20, 285), (20 + int((pct_tensao/100)*340), 300), (0, 0, 255), -1) 
-        
-        # 3. Surpresa
+
         cv2.putText(dashboard, f"Surpresa: {pct_surpresa:.1f}%", (20, 330), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.rectangle(dashboard, (20, 340), (20 + int((pct_surpresa/100)*340), 355), (0, 255, 255), -1) 
         
-        # 4. Neutro
         cv2.putText(dashboard, f"Neutro: {pct_neutro:.1f}%", (20, 385), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.rectangle(dashboard, (20, 395), (20 + int((pct_neutro/100)*340), 410), (150, 150, 150), -1) 
         
-        # Linha de Separação
         cv2.line(dashboard, (20, 430), (largura_dash - 20, 430), (50, 50, 50), 1)
         
-        # Rodapé com dados compactados e contagem
         cv2.putText(dashboard, f"DADOS RAW -> Boca: {lag_boca:.2f} | Abert: {abert_boca:.2f} | Sob: {dist_sob:.2f}", (20, 455), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (100, 100, 100), 1)
         cv2.putText(dashboard, f"Frames analisados: {frames_processados}", (20, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (100, 100, 100), 1)
 
@@ -196,9 +171,7 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# ====================================================================
-# 5. RELATÓRIO DE NEGÓCIO FINAL (No Terminal)
-# ====================================================================
+
 if frames_processados > 0:
     print("\n" + "="*55)
     print(" RELATÓRIO DA SESSÃO DE UTILIZADOR (MÉTRICAS DE UX)")
@@ -210,7 +183,6 @@ if frames_processados > 0:
     print(f"- Surpresa: {pct_surpresa:.1f}%")
     print("-" * 55)
     
-    # Insight baseado na emoção predominante (ignorando o neutro)
     maior_emocao = max([pct_alegria, pct_tensao, pct_surpresa])
     
     if maior_emocao == pct_alegria and pct_alegria > 15:

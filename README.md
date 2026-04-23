@@ -1,3 +1,11 @@
+# Integrantes
+Leonardo de Matos Queiroz rm: 552500
+Vitoria Cerqueira Santos rm: 552509
+Lucas Henrique de Melo Silva rm: 550175
+Pedro Henrique Sodre rm: 98834
+Felipe Pereira Meschiatti rm: 551978
+
+
 # Repositório Template para OpenCV
 
 Este repositório serve como ponto a pé inicial para OpenCV em Python.
